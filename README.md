@@ -39,9 +39,7 @@ warehouse_inventory_app/
 
 Make sure you have Python 3.7 or higher. Then install the required libraries:
 
-```bash
 pip install flask babel
-
 
 ---
 
@@ -49,7 +47,6 @@ pip install flask babel
 
 Make sure you have Python 3.7 or higher. Then install the required libraries:
 
-```bash
 pip install -r requrements.txt
 
 ## Running the pipe
