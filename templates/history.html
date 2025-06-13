@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+    <meta charset="UTF-8">
+    <title>היסטוריית פעולות</title>
+</head>
+<body>
+    <h1>היסטוריה</h1>
+
+    <form method="get">
+        <label>מחסן:</label>
+        <select name="warehouse_id">
+            <option value="">--הכל--</option>
+            {% for id, wh in warehouses.items() %}
+            <option value="{{ id }}" {% if selected_warehouse_id == id %}selected{% endif %}>{{ wh.name }}</option>
+            {% endfor %}
+        </select>
+        <label>משתמש:</label>
+        <input name="user" value="{{ selected_user }}">
+        <label>מתאריך:</label>
+        <input name="start_date" type="date" value="{{ start_date }}">
+        <label>עד תאריך:</label>
+        <input name="end_date" type="date" value="{{ end_date }}">
+        <label>חיפוש חופשי:</label>
+        <input name="q" value="{{ search_query }}">
+        <button type="submit">סנן</button>
+    </form>
+
+    <table border="1">
+        <thead>
+            <tr><th>זמן</th><th>משתמש</th><th>פעולה</th><th>פריט</th><th>כמות</th><th>מחסן</th></tr>
+        </thead>
+        <tbody>
+            {% for a in actions %}
+            <tr>
+                <td>{{ a.timestamp|hebrew_datetime }}</td>
+                <td>{{ a.user }}</td>
+                <td>{{ a.action }}</td>
+                <td>{{ a.item }}</td>
+                <td>{{ a.quantity }}</td>
+                <td>{{ warehouses[a.warehouse_id].name }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+    <meta charset="UTF-8">
+    <title>ניהול משתמשים</title>
+</head>
+<body>
+    <h1>ניהול משתמשים</h1>
+    <form method="post">
+        <input name="username" placeholder="שם משתמש"><br>
+        <input name="password" placeholder="סיסמה"><br>
+        <select name="role">
+            <option value="admin">מנהל</option>
+            <option value="reporter">מדווח פערים</option>
+        </select><br>
+        <button type="submit">הוסף</button>
+    </form>
+
+    <h2>רשימת משתמשים</h2>
+    <ul>
+        {% for username, info in users.items() %}
+        <li>{{ username }} ({{ info.role }})</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

@@ -1,0 +1,127 @@
+
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+    <meta charset="UTF-8">
+    <title>מנהל מחסן</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; direction: rtl; }
+        .warehouse { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: right; }
+        th { background-color: #f0f0f0; }
+        .logo-container {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+        }
+        .logo-container img {
+            height: 150px;
+            width: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="logo-container">
+        <img src="{{ url_for('static', filename='bhd1_logo.SVG') }}" alt="לוגו">
+    </div>
+    <h1>מנהל מלאי מחסנים - בה״ד 1</h1>
+    <div>
+        <h2>צור מחסן חדש</h2>
+        <input id="warehouseName" placeholder="שם המחסן">
+        <button onclick="createWarehouse()">צור</button>
+        <a href="/history"><button>צפה בהיסטוריה</button></a>
+    </div>
+    <div id="warehouses">
+        {% for id, wh in warehouses.items() %}
+            <div class="warehouse">
+                <h3>{{ wh.name }}</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>פריט</th>
+                            <th>כמות</th>
+                            <th>משתמש אחרון</th>
+                            <th>פעולות</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item, data in wh.inventory.items() %}
+                        <tr>
+                            <td>{{ item }}</td>
+                            <td>{{ data.quantity }}</td>
+                            <td>{{ data.user }}</td>
+                            <td>
+                                <button onclick="editItem('{{ id }}', '{{ item }}')">ערוך</button>
+                                <button onclick="removeItem('{{ id }}', '{{ item }}')">מחק</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div>
+                    <input placeholder="שם פריט" id="itemName-{{ id }}">
+                    <input type="number" placeholder="כמות" id="itemQty-{{ id }}">
+                    <input placeholder="שם משתמש" id="itemUser-{{ id }}">
+                    <button onclick="addItem('{{ id }}')">הוסף פריט</button>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    <script>
+        async function createWarehouse() {
+            const name = document.getElementById('warehouseName').value;
+            const res = await fetch('/warehouses', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name})
+            });
+            if (res.ok) location.reload();
+        }
+
+        async function addItem(id) {
+            const item = document.getElementById(`itemName-${id}`).value.trim();
+            const quantityStr = document.getElementById(`itemQty-${id}`).value;
+            const user = document.getElementById(`itemUser-${id}`).value.trim();
+
+            if (!item || !quantityStr || !user) {
+                alert("אנא מלא את כל השדות (שם פריט, כמות, משתמש).");
+                return;
+            }
+
+            const quantity = parseInt(quantityStr);
+            if (isNaN(quantity) || quantity < 0) {
+                alert("כמות חייבת להיות מספר תקין.");
+                return;
+            }
+
+            const res = await fetch(`/warehouses/${id}/items`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({item, quantity, user})
+            });
+            if (res.ok) location.reload();
+            else alert("שגיאה בהוספת הפריט.");
+        }
+
+        async function removeItem(id, item) {
+            const user = prompt("הזן את שם המשתמש שלך כדי לאשר מחיקה:");
+            const res = await fetch(`/warehouses/${id}/items/${item}?user=${user}`, {
+                method: 'DELETE'
+            });
+            if (res.ok) location.reload();
+        }
+
+        async function editItem(id, item) {
+            const newQty = prompt("הזן כמות חדשה:");
+            const user = prompt("הזן את שם המשתמש שלך:");
+            const res = await fetch(`/warehouses/${id}/items`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({item, quantity: parseInt(newQty), user})
+            });
+            if (res.ok) location.reload();
+        }
+    </script>
+</body>
+</html>

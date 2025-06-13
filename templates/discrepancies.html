@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+    <meta charset="UTF-8">
+    <title>ניהול פערים</title>
+</head>
+<body>
+    <h1>פערים שדווחו</h1>
+
+    <form method="get">
+        <label>סטטוס:</label>
+        <select name="status">
+            <option value="">--הכל--</option>
+            <option>בוצע</option>
+            <option>לא בוצע</option>
+            <option>בביצוע</option>
+        </select>
+        <label>מדווח:</label>
+        <input name="reporter">
+        <button type="submit">סנן</button>
+    </form>
+
+    <table border="1">
+        <thead>
+            <tr>
+                <th>פריט</th><th>כמות צפויה</th><th>כמות בפועל</th><th>מחסן</th>
+                <th>מדווח</th><th>סטטוס</th><th>זמן</th><th>עדכון</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for d in discrepancies %}
+            <tr>
+                <td>{{ d.item }}</td>
+                <td>{{ d.expected }}</td>
+                <td>{{ d.actual }}</td>
+                <td>{{ warehouses[d.warehouse].name }}</td>
+                <td>{{ d.reporter }}</td>
+                <td>{{ d.status }}</td>
+                <td>{{ d.timestamp|hebrew_datetime }}</td>
+                <td>
+                    {% if user_has_permission() %}
+                    <form method="post" action="/discrepancies/{{ d.id }}/update">
+                        <select name="status">
+                            <option {{ 'selected' if d.status == 'לא בוצע' }}>לא בוצע</option>
+                            <option {{ 'selected' if d.status == 'בביצוע' }}>בביצוע</option>
+                            <option {{ 'selected' if d.status == 'בוצע' }}>בוצע</option>
+                        </select>
+                        <button type="submit">עדכן</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>דווח על פער חדש</h2>
+    <form method="post">
+        <input name="item" placeholder="שם פריט"><br>
+        <input name="expected" placeholder="כמות צפויה"><br>
+        <input name="actual" placeholder="כמות בפועל"><br>
+        <select name="warehouse">
+            {% for id, wh in warehouses.items() %}
+            <option value="{{ id }}">{{ wh.name }}</option>
+            {% endfor %}
+        </select><br>
+        <button type="submit">שלח</button>
+    </form>
+</body>
+</html>
