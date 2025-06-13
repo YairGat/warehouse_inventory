@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html dir="rtl" lang="he">
 <head>
@@ -10,118 +9,127 @@
         table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
         th, td { border: 1px solid #ccc; padding: 8px; text-align: right; }
         th { background-color: #f0f0f0; }
-        .logo-container {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-        }
-        .logo-container img {
-            height: 150px;
-            width: auto;
-        }
+        .logo-container { position: absolute; top: 10px; left: 10px; }
+        .logo-container img { height: 150px; width: auto; }
     </style>
 </head>
 <body>
     <div class="logo-container">
         <img src="{{ url_for('static', filename='bhd1_logo.SVG') }}" alt="לוגו">
     </div>
+
     <h1>מנהל מלאי מחסנים - בה״ד 1</h1>
+
+    {% if role == 'editor' %}
     <div>
         <h2>צור מחסן חדש</h2>
         <input id="warehouseName" placeholder="שם המחסן">
         <button onclick="createWarehouse()">צור</button>
-        <a href="/history"><button>צפה בהיסטוריה</button></a>
     </div>
+    {% endif %}
+
+    <a href="/history"><button>צפה בהיסטוריה</button></a>
+    <a href="/export_inventory"><button>יצוא מלאי כולל (CSV)</button></a>
+
     <div id="warehouses">
         {% for id, wh in warehouses.items() %}
-            <div class="warehouse">
-                <h3>{{ wh.name }}</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>פריט</th>
-                            <th>כמות</th>
-                            <th>משתמש אחרון</th>
-                            <th>פעולות</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item, data in wh.inventory.items() %}
-                        <tr>
-                            <td>{{ item }}</td>
-                            <td>{{ data.quantity }}</td>
-                            <td>{{ data.user }}</td>
-                            <td>
-                                <button onclick="editItem('{{ id }}', '{{ item }}')">ערוך</button>
-                                <button onclick="removeItem('{{ id }}', '{{ item }}')">מחק</button>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <div>
-                    <input placeholder="שם פריט" id="itemName-{{ id }}">
-                    <input type="number" placeholder="כמות" id="itemQty-{{ id }}">
-                    <input placeholder="שם משתמש" id="itemUser-{{ id }}">
-                    <button onclick="addItem('{{ id }}')">הוסף פריט</button>
-                </div>
+        <div class="warehouse">
+            <h3>{{ wh.name }}</h3>
+            <table>
+                <thead>
+                <tr>
+                    <th>פריט</th>
+                    <th>כמות</th>
+                    <th>משתמש אחרון</th>
+                    <th>פעולות</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for item, data in wh.inventory.items() %}
+                <tr>
+                    <td>{{ item }}</td>
+                    <td>{{ data.quantity }}</td>
+                    <td>{{ data.user }}</td>
+                    <td>
+                        {% if role == 'editor' %}
+                        <button onclick="editItem('{{ id }}', '{{ item }}')">ערוך</button>
+                        <button onclick="removeItem('{{ id }}', '{{ item }}')">מחק</button>
+                        {% else %}
+                        —‎
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- Export-this-warehouse button (visible to all roles) -->
+            <a href="/export_inventory/{{ id }}"><button>יצוא למחסן זה (CSV)</button></a>
+
+            {% if role == 'editor' %}
+            <div>
+                <input placeholder="שם פריט" id="itemName-{{ id }}">
+                <input type="number" placeholder="כמות" id="itemQty-{{ id }}">
+                <button onclick="addItem('{{ id }}')">הוסף פריט</button>
             </div>
+            {% endif %}
+        </div>
         {% endfor %}
     </div>
-    <script>
-        async function createWarehouse() {
-            const name = document.getElementById('warehouseName').value;
-            const res = await fetch('/warehouses', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({name})
-            });
-            if (res.ok) location.reload();
-        }
 
-        async function addItem(id) {
-            const item = document.getElementById(`itemName-${id}`).value.trim();
-            const quantityStr = document.getElementById(`itemQty-${id}`).value;
-            const user = document.getElementById(`itemUser-${id}`).value.trim();
+<script>
+async function createWarehouse() {
+    const name = document.getElementById('warehouseName').value.trim();
+    if (!name) { alert("יש להזין שם מחסן."); return; }
 
-            if (!item || !quantityStr || !user) {
-                alert("אנא מלא את כל השדות (שם פריט, כמות, משתמש).");
-                return;
-            }
+    const res = await fetch('/warehouses', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ name })
+    });
+    if (res.ok) location.reload();
+    else alert("שגיאה ביצירת המחסן.");
+}
 
-            const quantity = parseInt(quantityStr);
-            if (isNaN(quantity) || quantity < 0) {
-                alert("כמות חייבת להיות מספר תקין.");
-                return;
-            }
+async function addItem(id) {
+    const item = document.getElementById(`itemName-${id}`).value.trim();
+    const qtyStr = document.getElementById(`itemQty-${id}`).value;
 
-            const res = await fetch(`/warehouses/${id}/items`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({item, quantity, user})
-            });
-            if (res.ok) location.reload();
-            else alert("שגיאה בהוספת הפריט.");
-        }
+    if (!item || !qtyStr) { alert("אנא מלא את כל השדות."); return; }
 
-        async function removeItem(id, item) {
-            const user = prompt("הזן את שם המשתמש שלך כדי לאשר מחיקה:");
-            const res = await fetch(`/warehouses/${id}/items/${item}?user=${user}`, {
-                method: 'DELETE'
-            });
-            if (res.ok) location.reload();
-        }
+    const quantity = parseInt(qtyStr, 10);
+    if (isNaN(quantity) || quantity < 0) { alert("כמות חייבת להיות מספר תקין."); return; }
 
-        async function editItem(id, item) {
-            const newQty = prompt("הזן כמות חדשה:");
-            const user = prompt("הזן את שם המשתמש שלך:");
-            const res = await fetch(`/warehouses/${id}/items`, {
-                method: 'PUT',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({item, quantity: parseInt(newQty), user})
-            });
-            if (res.ok) location.reload();
-        }
-    </script>
+    const res = await fetch(`/warehouses/${id}/items`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ item, quantity })
+    });
+    if (res.ok) location.reload();
+    else alert("שגיאה בהוספת הפריט.");
+}
+
+async function removeItem(id, item) {
+    if (!confirm(`האם למחוק את הפריט "${item}"?`)) return;
+
+    const res = await fetch(`/warehouses/${id}/items/${item}`, { method: 'DELETE' });
+    if (res.ok) location.reload();
+    else alert("שגיאה במחיקת הפריט.");
+}
+
+async function editItem(id, item) {
+    const newQty = prompt("הזן כמות חדשה:");
+    const quantity = parseInt(newQty, 10);
+    if (isNaN(quantity) || quantity < 0) { alert("כמות חייבת להיות מספר תקין."); return; }
+
+    const res = await fetch(`/warehouses/${id}/items`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ item, quantity })
+    });
+    if (res.ok) location.reload();
+    else alert("שגיאה בעדכון הכמות.");
+}
+</script>
 </body>
 </html>
