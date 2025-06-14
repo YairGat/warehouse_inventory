@@ -23,6 +23,8 @@ from functools import wraps
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.secret_key = 'supersecret'
+app.config['SESSION_PERMANENT'] = False      # default cookies die on close
+
 
 # --------------------------------------------------------------------
 # In-memory data
@@ -237,11 +239,12 @@ def login():
         password = request.form['password']
         user_rec = users.get(username)
         if user_rec and user_rec['password'] == password:
+            session.clear()                       # safety: start fresh
             session['username'] = username
             session['role']     = user_rec['role']
+            session.permanent   = False           # ← key line
             return redirect(url_for('home'))
         return "שגיאת התחברות", 401
-
     return '''
         <form method="post">
             שם משתמש: <input name="username"><br>
