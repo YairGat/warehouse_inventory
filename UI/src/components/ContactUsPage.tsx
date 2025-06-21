@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import WarehouseAppBar from './WarehouseAppBar.tsx';
+import WarehouseAppBar from './NavigationBar.tsx';
 import { useNavigate } from 'react-router-dom';
 
 const ContactUsPage: React.FC = () => {

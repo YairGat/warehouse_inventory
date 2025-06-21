@@ -1,3 +1,4 @@
 gunicorn
 flask
 babel
+flask-CORS
