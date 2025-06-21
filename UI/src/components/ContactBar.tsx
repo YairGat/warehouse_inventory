@@ -4,12 +4,12 @@ import BugReportIcon from '@mui/icons-material/BugReport';
 import LightbulbIcon from '@mui/icons-material/Lightbulb';
 import { useNavigate } from 'react-router-dom';
 
-interface WarehouseDrawerProps {
+interface ContactBarProps {
     open: boolean;
     onClose: () => void;
 }
 
-const WarehouseDrawer: React.FC<WarehouseDrawerProps> = ({ open, onClose }) => {
+const ContactBar: React.FC<ContactBarProps> = ({ open, onClose }) => {
     const navigate = useNavigate();
     return (
         <Drawer anchor="right" open={open} onClose={onClose}>
@@ -45,4 +45,4 @@ const WarehouseDrawer: React.FC<WarehouseDrawerProps> = ({ open, onClose }) => {
     );
 };
 
-export default WarehouseDrawer; 
+export default ContactBar; 

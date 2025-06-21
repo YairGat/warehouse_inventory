@@ -4,12 +4,12 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import MenuIcon from '@mui/icons-material/Menu';
 import { useNavigate } from 'react-router-dom';
 
-interface WarehouseAppBarProps {
+interface NavigationBarProps {
     onMenuClick?: () => void;
     onBack?: () => void;
 }
 
-const WarehouseAppBar: React.FC<WarehouseAppBarProps> = ({ onMenuClick, onBack }) => {
+const NavigationBar: React.FC<NavigationBarProps> = ({ onMenuClick, onBack }) => {
     const navigate = useNavigate();
     const handleBack = () => {
         if (onBack) {
@@ -37,4 +37,4 @@ const WarehouseAppBar: React.FC<WarehouseAppBarProps> = ({ onMenuClick, onBack }
     );
 };
 
-export default WarehouseAppBar; 
+export default NavigationBar; 
