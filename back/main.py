@@ -17,7 +17,6 @@ from flask import (
 from flask_cors import CORS
 from datetime import datetime
 from uuid import uuid4
-import os
 import csv
 from babel.dates import format_datetime
 from functools import wraps
@@ -31,65 +30,56 @@ app.config['SESSION_PERMANENT'] = False      # default cookies die on close
 # --------------------------------------------------------------------
 # In-memory data
 # --------------------------------------------------------------------
+# Define groups and which users belong to them
+GROUPS = {
+    "sahar": "sahar123",
+    "yiftah": "yiftah123"
+}
+
+# Example: assign warehouses to groups (list of group names)
 warehouses = {
     "1": {
-        "name": "קרביץ",
+        "name": "קרביץ משרדים",
+        "groups": ["sahar", "yiftah"],
         "inventory": {
-            "מברגה": {"quantity": 5, "user": "admin"},
-            "פטיש": {"quantity": 2, "user": "admin"}
+            "מברגה": {"quantity": 5, "user": "orielbaz"},
+            "פטיש": {"quantity": 2, "user": "orielbaz"}
         }
     },
     "2": {
-        "name": "קרביץ פלוגת יפתח",
+        "name": "רספייה פלוגת יפתח",
+        "groups": ["yiftah"],
         "inventory": {
-            "מברגה": {"quantity": 3, "user": "admin"},
-            "פלייר": {"quantity": 7, "user": "admin"}
+            "מברגה": {"quantity": 3, "user": "orielbaz"},
+            "פלייר": {"quantity": 7, "user": "orielbaz"}
         }
     },
     "3": {
-        "name": "מחסן גדוד אלון",
+        "name": "רספייה פלוגת סהר",
+        "groups": ["sahar"],
         "inventory": {
-            "מברגה": {"quantity": 1, "user": "admin"},
-            "מסור": {"quantity": 4, "user": "admin"}
-        }
-    },
-    "4": {
-        "name": "מחסן גדוד ארז",
-        "inventory": {
-            "פטיש": {"quantity": 6, "user": "admin"},
-            "פלייר": {"quantity": 2, "user": "admin"}
+            "מברגה": {"quantity": 1, "user": "orielbaz"},
+            "מסור": {"quantity": 4, "user": "orielbaz"}
         }
     }
 }
 
 actions = []
 
-users = {
-    "admin": {"password": "adminadmin", "role": "editor"},
-    "yael":  {"password": "1234",   "role": "viewer"},
-}
-
-# --------------------------------------------------------------------
-# Helpers
-# --------------------------------------------------------------------
 def current_user():
     """Return the username from the session (or None if not logged in)."""
     return session.get("username")
 
-def user_role():
-    """Return the role of the current user (defaults to 'viewer')."""
-    return session.get("role") or users.get(current_user(), {}).get("role", "viewer")
+def current_group():
+    """Return the group of the current user from the session."""
+    return session.get("group")
 
-def editor_required(view):
-    """Decorator: block non-editors from mutating data."""
-    @wraps(view)
-    def wrapped(*args, **kwargs):
-        if user_role() != "editor":
-            if request.accept_mimetypes.accept_html:
-                return "Permission denied — read-only account", 403
-            return jsonify({"error": "permission denied"}), 403
-        return view(*args, **kwargs)
-    return wrapped
+def get_group_by_password(password):
+    """Return the group name by password, or None if not found."""
+    for group, pwd in GROUPS.items():
+        if pwd == password:
+            return group
+    return None
 
 def format_hebrew_datetime(iso_str):
     dt = datetime.fromisoformat(iso_str)
@@ -119,7 +109,6 @@ def get_actions_for_warehouse(warehouse_id):
 
 # ----------  Warehouses --------------------------------------------
 @app.route('/warehouses', methods=['POST'])
-@editor_required
 def create_warehouse():
     data = request.json or {}
     name = data.get('name')
@@ -136,18 +125,21 @@ def create_warehouse():
 
 @app.route('/warehouses', methods=['GET'])
 def list_warehouses():
-    return jsonify(warehouses)
+    visible_warehouses = {
+        wid: w for wid, w in warehouses.items()
+        if current_group() in w.get('groups', [])
+    }
+    return jsonify(visible_warehouses), 200
 
 @app.route('/warehouses/<warehouse_id>', methods=['GET'])
 def get_warehouse(warehouse_id):
     wh = warehouses.get(warehouse_id)
-    if not wh:
+    if not wh or current_group() not in wh["groups"]:
         return jsonify({"error": "Warehouse not found"}), 404
     return jsonify(wh)
 
 # ----------  Items ---------------------------------------------------
 @app.route('/warehouses/<warehouse_id>/items', methods=['POST'])
-@editor_required
 def add_item(warehouse_id):
     data     = request.json or {}
     item     = data.get('item')
@@ -171,7 +163,6 @@ def add_item(warehouse_id):
     return jsonify({"item": item, "quantity": inventory[item]["quantity"]})
 
 @app.route('/warehouses/<warehouse_id>/items', methods=['PUT'])
-@editor_required
 def update_item(warehouse_id):
     data     = request.json or {}
     item     = data.get('item')
@@ -189,7 +180,6 @@ def update_item(warehouse_id):
     return jsonify({"item": item, "new_quantity": quantity})
 
 @app.route('/warehouses/<warehouse_id>/items/<item>', methods=['DELETE'])
-@editor_required
 def remove_item(warehouse_id, item):
     wh = warehouses.get(warehouse_id)
     if not wh or item not in wh['inventory']:
@@ -234,13 +224,14 @@ def login():
     data = request.get_json() or request.form
     username = data.get('username')
     password = data.get('password')
-
-    user_rec = users.get(username)
-    if user_rec and user_rec['password'] == password:
+    # Find all groups this user belongs to
+    group = get_group_by_password(password)
+    # Example password check (replace with your logic)
+    if group and username:
+        session.permanent = False
         session['username'] = username
-        session['role']     = user_rec['role']
-        session.permanent   = False           # ← key line
-        return jsonify({"success": True}), 200
+        session['group'] = group
+        return jsonify({"success": True, "username": username, "group": group}), 200
     else:
         return jsonify({"success": False, "error": "Invalid credentials"}), 401
 

@@ -43,7 +43,11 @@ const InventoryPage: React.FC = () => {
         async function loadWarehouse() {
             if (warehouseName) {
                 const data = await getFromBack(`warehouses/${warehouseName}`);
-                setWarehouse(data);
+                if (data && data.error === "Warehouse not found") {
+                    setWarehouse(null);
+                } else {
+                    setWarehouse(data);
+                }
             }
         }
         loadWarehouse();

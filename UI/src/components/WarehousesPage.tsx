@@ -27,7 +27,7 @@ const WarehousesPage: React.FC = () => {
     const handleDrawerClose = () => setDrawerOpen(false);
 
     const handleWarehouseClick = (warehouseId: string) => {
-        navigate(`/inventory/${encodeURIComponent(warehouseId)}`);
+        navigate(`/warehouses/${encodeURIComponent(warehouseId)}`);
     };
 
     return (
