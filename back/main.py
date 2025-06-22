@@ -117,20 +117,6 @@ def get_actions_for_warehouse(warehouse_id):
     filtered = [action for action in reversed(actions) if str(action.get('warehouse_id')) == str(warehouse_id)]
     return jsonify(filtered), 200
 
-# --------------------------------------------------------------------
-# Routes
-# --------------------------------------------------------------------
-@app.route('/')
-def home():
-    if not current_user():
-        return redirect(url_for('login'))
-    return render_template(
-        'index.html',
-        warehouses=warehouses,
-        users=users,
-        role=user_role()
-    )
-
 # ----------  Warehouses --------------------------------------------
 @app.route('/warehouses', methods=['POST'])
 @editor_required
@@ -214,7 +200,7 @@ def remove_item(warehouse_id, item):
     return jsonify({"removed_item": item, "quantity": quantity})
 
 # ----------  History & Export ---------------------------------------
-@app.route('/export_inventory')
+@app.route('/export_inventory', methods=['GET'])
 def export_inventory():
     output_path = 'inventory_export.csv'
     with open(output_path, mode='w', newline='', encoding='utf-8') as file:
@@ -225,7 +211,7 @@ def export_inventory():
                 writer.writerow([wh['name'], item, data['quantity'], data['user']])
     return send_file(output_path, as_attachment=True)
 
-@app.route('/export_inventory/<warehouse_id>')
+@app.route('/export_inventory/<warehouse_id>', methods=['GET'])
 def export_inventory_single(warehouse_id):
     """Download a CSV for just one warehouse."""
     wh = warehouses.get(warehouse_id)
@@ -261,12 +247,10 @@ def login():
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('login'))
+    return jsonify({"success": True}), 200
 
 # --------------------------------------------------------------------
 # Launch
 # --------------------------------------------------------------------
 if __name__ == '__main__':
-    os.makedirs('templates', exist_ok=True)
-    os.makedirs('static',    exist_ok=True)
     app.run(debug=True, port=5001)
