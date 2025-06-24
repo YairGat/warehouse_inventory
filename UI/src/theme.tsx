@@ -1,3 +1,4 @@
+
 import * as React from 'react';
 import { createTheme, ThemeOptions } from '@mui/material/styles';
 
@@ -5,16 +6,20 @@ import { createTheme, ThemeOptions } from '@mui/material/styles';
 const theme = createTheme({
   palette: {
     background: {
-      default: '#ffffff',
+      default: '#FBFEF9',
     },
     primary: {
-      main: '#955CFF',
-      dark: '#293A80',
-      contrastText: '#fafafa'
+      main: '#335C67',
     },
     secondary: {
-      main: '#E6B342',
-    }
+      main: '#104F55', //E09F3E
+      light: '#32746D',
+      dark: '#01200F',
+      contrastText: '#ffffff', 
+    },
+  },
+  typography: {
+    fontFamily: 'narkis, sans-serif',
   },
   components: {
     MuiCssBaseline: {
@@ -38,10 +43,15 @@ const theme = createTheme({
         }
       },
     },
+    MuiInputLabel: {
+      styleOverrides: {
+        root: {
+          fontFamily: 'narkis, barlev-regular, sans-serif',
+        },
+      },
+    },
   },
 });
-
-
 
 const custom_theme = theme;
 

@@ -20,11 +20,11 @@ const NavigationBar: React.FC<NavigationBarProps> = ({ onMenuClick, onBack }) =>
     };
     return (
         <AppBar position="static">
-            <Toolbar>
+            <Toolbar sx={{ minHeight: 80, px: 3 }}>
                 <IconButton color="inherit" onClick={handleBack} edge="start" aria-label="back">
                     <ArrowBackIcon />
                 </IconButton>
-                <Typography variant="h6" component="div" sx={{ flexGrow: 1, ml: 2, fontFamily: 'aptos' }}>
+                <Typography variant="h5" component="div" sx={{ flexGrow: 1, ml: 2, fontFamily: 'barlev-bold', fontSize: '2rem' }}>
                     המחסן הדיגיטלי
                 </Typography>
                 {onMenuClick && (

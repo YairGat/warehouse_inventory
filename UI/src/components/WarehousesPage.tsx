@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, IconButton, FormGroup, FormControlLabel, Checkbox } from '@mui/material';
+import { Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, IconButton, FormGroup, FormControlLabel, Checkbox, Grid } from '@mui/material';
 import NavigationBar from './NavigationBar.tsx';
 import ContactBar from './ContactBar.tsx';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +21,7 @@ const WarehousesPage: React.FC = () => {
     const [groups, setGroups] = useState<string[]>([]);
     const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
     const [userGroup, setUserGroup] = useState<string | null>(null);
+    const [manageMode, setManageMode] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -89,63 +90,78 @@ const WarehousesPage: React.FC = () => {
             <NavigationBar onMenuClick={handleDrawerOpen} />
             <ContactBar open={drawerOpen} onClose={handleDrawerClose} />
             <Box display="flex" justifyContent="center" alignItems="center" height="calc(100vh - 64px)" flexDirection="column">
-                {isAdmin && (
-                    <Box display="flex" justifyContent="flex-end" width="100%" maxWidth={320} mb={2}>
+                
+                <Grid
+                    container
+                    spacing={2}
+                    justifyContent="center"
+                    alignItems="stretch"
+                    sx={{ my: 2, width: '100%', maxWidth: 900 }}
+                >
+                    {Object.entries(warehouses).map(([id, warehouse]) => (
+                        <Grid item xs={12} sm={6} md={4} lg={3} key={id} display="flex" alignItems="stretch">
+                            <Box position="relative" width="100%">
+                                {isAdmin && manageMode && (
+                                    <IconButton
+                                        size="small"
+                                        onClick={e => {
+                                            e.stopPropagation();
+                                            handleDeleteWarehouse(id);
+                                        }}
+                                        disabled={loading}
+                                        title="מחק מחסן"
+                                        sx={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', zIndex: 1, color: "secondary.contrastText" }}
+                                    >
+                                        <DeleteIcon />
+                                    </IconButton>
+                                )}
+                                <Button
+                                    color='secondary'
+                                    variant="contained"
+                                    size="large"
+                                    fullWidth
+                                    onClick={() => handleWarehouseClick(id)}
+                                    sx={{ minHeight: '50px', justifyContent: 'center', pl: isAdmin && manageMode ? 5 : 2 }}
+                                >
+                                    {warehouse.name}
+                                </Button>
+                            </Box>
+                        </Grid>
+                    ))}
+                </Grid>
+                {isAdmin && manageMode && (
+                    <Box display="flex" justifyContent="center" width="100%" gap={2} mt={3}>
                         <Button
                             variant="contained"
-                            color="primary"
+                            color="secondary"
                             onClick={() => setAddDialogOpen(true)}
-                            sx={{ ml: 2 }}
                             disabled={loading}
                         >
                             הוסף מחסן
                         </Button>
+                        <Button
+                            variant="outlined"
+                            color="secondary"
+                            onClick={() => setManageMode(false)}
+                            disabled={loading}
+                        >
+                            סיים ניהול
+                        </Button>
                     </Box>
                 )}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', margin: '1rem 0', width: '100%', maxWidth: 320 }}>
-                    {Object.entries(warehouses).map(([id, warehouse]) => (
-                        <Box
-                            key={id}
-                            display="flex"
-                            alignItems="center"
-                            sx={{
-                                background: '#955CFF',
-                                borderRadius: '8px',
-                                boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
-                                border: '1px solid #1976d2',
-                                color: '#fff',
-                                fontWeight: 600,
-                                fontSize: '1rem',
-                                transition: 'background 0.2s',
-                                cursor: 'pointer',
-                                px: 2,
-                                py: 1,
-                                '&:hover': { background: '#1976d2' },
-                                minWidth: 0
-                            }}
+                {isAdmin && !manageMode && (
+                    <Box display="flex" justifyContent="center" width="100%" mt={3}>
+                        <Button
+                            variant="contained"
+                            color="secondary"
+                            onClick={() => setManageMode(true)}
+                            disabled={loading}
+                            sx={{ minWidth: 200, fontSize: '1.1rem', boxShadow: 3 }}
                         >
-                            {isAdmin && (
-                                <IconButton
-                                    size="small"
-                                    color="inherit"
-                                    onClick={() => handleDeleteWarehouse(id)}
-                                    disabled={loading}
-                                    sx={{ ml: 0, mr: 1 }}
-                                    title="מחק מחסן"
-                                >
-                                    <DeleteIcon />
-                                </IconButton>
-                            )}
-                            <Box
-                                flex={1}
-                                onClick={() => handleWarehouseClick(id)}
-                                sx={{ cursor: 'pointer', textAlign: 'center' }}
-                            >
-                                {warehouse.name}
-                            </Box>
-                        </Box>
-                    ))}
-                </div>
+                            נהל מחסנים
+                        </Button>
+                    </Box>
+                )}
             </Box>
             <Dialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)}>
                 <DialogTitle>הוסף מחסן חדש</DialogTitle>
@@ -176,8 +192,8 @@ const WarehousesPage: React.FC = () => {
                     </FormGroup>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setAddDialogOpen(false)} disabled={loading}>ביטול</Button>
-                    <Button onClick={handleAddWarehouse} variant="contained" color="primary" disabled={loading || !newWarehouseName.trim() || selectedGroups.length === 0}>הוסף</Button>
+                    <Button onClick={() => setAddDialogOpen(false)} color="secondary" disabled={loading}>ביטול</Button>
+                    <Button onClick={handleAddWarehouse} variant="contained" color="secondary" disabled={loading || !newWarehouseName.trim() || selectedGroups.length === 0}>הוסף</Button>
                 </DialogActions>
             </Dialog>
         </Box>

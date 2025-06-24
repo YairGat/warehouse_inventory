@@ -14,6 +14,9 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
+import { DataGrid } from '@mui/x-data-grid';
+import SearchIcon from '@mui/icons-material/Search';
+import InputAdornment from '@mui/material/InputAdornment';
 
 interface InventoryItem {
     quantity: number;
@@ -140,16 +143,16 @@ const InventoryPage: React.FC = () => {
     return (
         <Box>
             <WarehouseAppBar onBack={() => navigate(-1)} />
-            <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mb: 3 }}>
+            <Stack direction="row" spacing={2} justifyContent="center" alignItems="center" flexWrap="wrap" sx={{ mt: 3, mb: 3 }}>
                 <IconButton
                     color="primary"
                     onClick={handleOpenHistory}
-                    sx={{ ml: 1 }}
+                    sx={{ ml: 1, my: 1 }}
                     title="היסטוריית מחסן"
                 >
                     <HistoryIcon />
                 </IconButton>
-                <Button variant="contained" color="primary" onClick={() => setAddDialogOpen(true)}>
+                <Button variant="outlined" color="secondary" onClick={() => setAddDialogOpen(true)} sx={{ my: 1 }}>
                     הוסף פריט
                 </Button>
                 <TextField
@@ -158,62 +161,96 @@ const InventoryPage: React.FC = () => {
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     size="small"
-                    sx={{ minWidth: 180, background: '#fff' }}
+                    sx={{ minWidth: 180, maxWidth: 300, background: '#fff', my: 1 }}
+                    InputProps={{
+                        startAdornment: (
+                            <InputAdornment position="start">
+                                <SearchIcon />
+                            </InputAdornment>
+                        ),
+                    }}
                 />
             </Stack>
             <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center">
                 {filteredItems.length === 0 ? (
                     <p>אין פריטים תואמים.</p>
                 ) : (
-                    <table dir="rtl" style={{ width: '100%', borderCollapse: 'collapse', direction: 'rtl' }}>
-                        <thead>
-                            <tr>
-                                <th style={{ borderBottom: '1px solid #aaa', textAlign: 'right' }}></th>
-                                <th style={{ borderBottom: '1px solid #aaa', textAlign: 'right' }}>פריט</th>
-                                <th style={{ borderBottom: '1px solid #aaa', textAlign: 'right' }}>כמות</th>
-                                <th style={{ borderBottom: '1px solid #aaa', textAlign: 'right' }}>משתמש אחרון</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredItems.map(([itemName, item]) => (
-                                <tr key={itemName}>
-                                    <td style={{ borderBottom: '1px solid #eee', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                                        <IconButton
-                                            size="small"
-                                            onClick={() => handleEraseItem(itemName)}
-                                            sx={{ color: 'grey.600', mr: 1 }}
-                                            title="מחק פריט"
-                                            disabled={actionLoading === `erase-${itemName}`}
-                                        >
-                                            <DeleteIcon fontSize="small" />
-                                        </IconButton>
-                                        <IconButton
-                                            size="small"
-                                            onClick={() => handleAddOne(itemName, item.quantity)}
-                                            color="primary"
-                                            sx={{ mr: 1 }}
-                                            title="הוסף אחד"
-                                            disabled={actionLoading === `add-${itemName}`}
-                                        >
-                                            <AddIcon fontSize="small" />
-                                        </IconButton>
-                                        <IconButton
-                                            size="small"
-                                            onClick={() => handleSubtractOne(itemName, item.quantity)}
-                                            color="secondary"
-                                            title="הסר אחד"
-                                            disabled={actionLoading === `remove-${itemName}`}
-                                        >
-                                            <RemoveIcon fontSize="small" />
-                                        </IconButton>
-                                    </td>
-                                    <td style={{ borderBottom: '1px solid #eee', textAlign: 'right' }}>{itemName}</td>
-                                    <td style={{ borderBottom: '1px solid #eee', textAlign: 'right' }}>{item.quantity}</td>
-                                    <td style={{ borderBottom: '1px solid #eee', textAlign: 'right' }}>{item.user}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    <Box sx={{ width: '100%', direction: 'rtl', maxWidth: { xs: '100vw', sm: 600, md: 900 }, mx: 'auto' }}>
+                        <DataGrid
+                            autoHeight
+                            rows={filteredItems.map(([itemName, item]) => ({
+                                id: itemName,
+                                itemName,
+                                quantity: item.quantity,
+                                user: item.user
+                            }))}
+                            columns={[
+                                {
+                                    field: 'itemName',
+                                    headerName: 'פריט',
+                                    flex: 1,
+                                    minWidth: 70,
+                                    headerAlign: 'center',
+                                    align: 'center',
+                                },
+                                {
+                                    field: 'quantity',
+                                    headerName: 'כמות',
+                                    flex: 0.5,
+                                    minWidth: 100,
+                                    headerAlign: 'center',
+                                    align: 'center',
+                                    renderCell: (params) => (
+                                        <Box display="flex" alignItems="center" justifyContent="center" gap={1}>
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => handleSubtractOne(params.row.itemName, params.row.quantity)}
+                                                color="secondary"
+                                                title="הסר אחד"
+                                                disabled={actionLoading === `remove-${params.row.itemName}`}
+                                            >
+                                                <RemoveIcon fontSize="small" />
+                                            </IconButton>
+                                            <span style={{ minWidth: 24, textAlign: 'center', display: 'inline-block' }}>{params.row.quantity}</span>
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => handleAddOne(params.row.itemName, params.row.quantity)}
+                                                color="secondary"
+                                                title="הוסף אחד"
+                                                disabled={actionLoading === `add-${params.row.itemName}`}
+                                            >
+                                                <AddIcon fontSize="small" />
+                                            </IconButton>
+                                        </Box>
+                                    )
+                                },
+                                {
+                                    field: 'user',
+                                    headerName: 'משתמש אחרון',
+                                    flex: 1,
+                                    minWidth: 70,
+                                    headerAlign: 'center',
+                                    align: 'center',
+                                },
+                            ]}
+                            initialState={{
+                                pagination: { paginationModel: { pageSize: 50, page: 0 } }
+                            }}
+                            pageSizeOptions={[50, 100, 200]}
+                            disableRowSelectionOnClick
+                            sx={{
+                                direction: 'rtl',
+                                fontFamily: 'narkis',
+                                borderRadius: 2,
+                                mt: 2,
+                                fontSize: { xs: '0.8rem', sm: '1rem' },
+                                '& .MuiDataGrid-cell, & .MuiDataGrid-columnHeader': {
+                                    py: { xs: 0.5, sm: 1 },
+                                    px: { xs: 0.5, sm: 2 },
+                                },
+                            }}
+                        />
+                    </Box>
                 )}
             </Box>
             <Dialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)} dir="rtl">
@@ -237,8 +274,8 @@ const InventoryPage: React.FC = () => {
                     />
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setAddDialogOpen(false)} disabled={actionLoading === 'add-dialog'}>ביטול</Button>
-                    <Button onClick={handleAddItem} variant="contained" color="primary" disabled={actionLoading === 'add-dialog'}>הוסף</Button>
+                    <Button onClick={() => setAddDialogOpen(false)} color="secondary" disabled={actionLoading === 'add-dialog'}>ביטול</Button>
+                    <Button onClick={handleAddItem} variant="contained" color="secondary" disabled={actionLoading === 'add-dialog'}>הוסף</Button>
                 </DialogActions>
             </Dialog>
             <Dialog open={historyOpen} onClose={handleCloseHistory} dir="rtl" maxWidth="md" fullWidth>

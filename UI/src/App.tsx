@@ -22,8 +22,8 @@ const NewApp: React.FC = () => {
             <style>
                 {`
           @font-face {
-            font-family: 'eras-itc-bold';
-            src: url('/fonts/eras-itc-bold.ttf') format('truetype');
+            font-family: 'barlev-regular';
+            src: url('/fonts/BARLEV-AAA-REGULAR.OTF') format('truetype');
             font-weight: normal;
             font-style: normal;
           }
@@ -32,8 +32,18 @@ const NewApp: React.FC = () => {
             <style>
                 {`
           @font-face {
-            font-family: 'eras-itc-medium';
-            src: url('/fonts/eras-itc-medium.ttf') format('truetype');
+            font-family: 'barlev-bold';
+            src: url('/fonts/BARLEV-AAA-BOLD.OTF') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+          }
+            `}
+            </style>
+            <style>
+                {`
+          @font-face {
+            font-family: 'narkis';
+            src: url('/fonts/NarkissBlock-Regular.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
           }
@@ -64,3 +74,4 @@ const NewApp: React.FC = () => {
 };
 
 export default NewApp;
+

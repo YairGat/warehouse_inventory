@@ -34,7 +34,6 @@ const HomePage: React.FC = () => {
             sx={{
                 height: '100vh',
                 bgcolor: '#FBFEF9',
-                color: '#955CFF',
                 display: 'flex',
                 flexDirection: 'row',
                 position: 'relative'
@@ -52,7 +51,7 @@ const HomePage: React.FC = () => {
                     <Box sx={{ position: 'absolute', top: 0, left: 0, p: 2 }}>
                         <img src='/images/Bahad_1_Symbol.png' alt='Bahad 1 Symbol' style={{ width: 60, height: 60 }} />
                     </Box>
-                    <Typography align='center' sx={{ mb: 0, fontFamily: 'aptos', fontSize: '3rem', padding: 0 }}>
+                    <Typography align='center' sx={{ mb: 0, fontFamily: 'barlev-bold', fontSize: '3rem', padding: 0, color: 'primary.main' }}>
                         המחסן הדיגיטלי
                     </Typography>
                     <Paper elevation={3} sx={{ mt: 4, p: 4, minWidth: 320 }}>
@@ -90,13 +89,7 @@ const HomePage: React.FC = () => {
                         </form>
                     </Paper>
                     <Typography sx={{ mt: '10vh', mb: '0', fontSize: '12px', textAlign: 'center' }}>
-                        למידע נוסף לחץ{' '}
-                        <Box
-                            component="span"
-                            sx={{ color: 'secondary.main', cursor: 'pointer' }}
-                        >
-                            כאן
-                        </Box>
+                    פותח על ידי צוערי גדוד אלון 89
                     </Typography>
                 </Container>
             </Fade>
