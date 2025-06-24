@@ -99,7 +99,7 @@ const InventoryPage: React.FC = () => {
         setHistoryOpen(false);
     };
 
-    // Handler for erasing an item
+    // Handler for erasing an item completely
     const handleEraseItem = async (itemName: string) => {
         if (!warehouseName) return;
         setActionLoading(`erase-${itemName}`);
@@ -185,6 +185,25 @@ const InventoryPage: React.FC = () => {
                                 user: item.user
                             }))}
                             columns={[
+                                {
+                                    field: 'erase',
+                                    headerName: '',
+                                    width: 50,
+                                    sortable: false,
+                                    filterable: false,
+                                    disableColumnMenu: true,
+                                    renderCell: (params) => (
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => handleEraseItem(params.row.itemName)}
+                                            color="error"
+                                            title="מחק פריט"
+                                            disabled={actionLoading === `erase-${params.row.itemName}`}
+                                        >
+                                            <DeleteIcon fontSize="small" />
+                                        </IconButton>
+                                    )
+                                },
                                 {
                                     field: 'itemName',
                                     headerName: 'פריט',
