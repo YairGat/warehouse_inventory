@@ -24,7 +24,7 @@ from functools import wraps
 import os
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
-CORS(app, supports_credentials=True, origins=["http://localhost:3000"])
+CORS(app, supports_credentials=True, origins=["https://warehouse-inventory-l1nb.onrender.com"])
 app.secret_key = 'supersecret'
 app.config['SESSION_PERMANENT'] = False      # default cookies die on close
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///warehouse.db'
@@ -347,4 +347,4 @@ if __name__ == '__main__':
     if not os.path.exists(db_path):
         with app.app_context():
             db.create_all()
-    app.run(debug=True, port=5001)
+    app.run(debug=False, port=5000)
