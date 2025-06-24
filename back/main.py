@@ -347,4 +347,4 @@ if __name__ == '__main__':
     if not os.path.exists(db_path):
         with app.app_context():
             db.create_all()
-    app.run(debug=False, host="https://warehouse-inventory-l1nb.onrender.com", port=5000)
+    app.run(debug=True, host="0.0.0.0", port=5000)
