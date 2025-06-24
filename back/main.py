@@ -15,17 +15,22 @@ from flask import (
     redirect, url_for, session, send_file
 )
 from flask_cors import CORS
+from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from uuid import uuid4
 import csv
 from babel.dates import format_datetime
 from functools import wraps
+import os
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 CORS(app, supports_credentials=True, origins=["http://localhost:3000"])
 app.secret_key = 'supersecret'
 app.config['SESSION_PERMANENT'] = False      # default cookies die on close
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///warehouse.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+db = SQLAlchemy(app)
 
 # --------------------------------------------------------------------
 # In-memory data
@@ -68,6 +73,20 @@ warehouses = {
 }
 
 actions = []
+
+class Warehouse(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False)
+    groups = db.Column(db.String(256), nullable=False)  # Comma-separated group names
+
+    inventory_items = db.relationship('InventoryItem', backref='warehouse', lazy=True)
+
+class InventoryItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouse.id'), nullable=False)
+    name = db.Column(db.String(120), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    user = db.Column(db.String(120), nullable=False)
 
 def current_user():
     """Return the username from the session (or None if not logged in)."""
@@ -133,98 +152,127 @@ def create_warehouse():
     data = request.json or {}
     name = data.get('name')
     groups = data.get('groups', [])
-    if not name:
-        return jsonify({"error": "Missing warehouse name"}), 400
-    
-    if not groups:
-        return jsonify({"error": "At least one group must be assigned"}), 400
-
-    # Always assign the admin group
+    if not name or not groups:
+        return jsonify({"error": "Missing fields"}), 400
     if ADMIN not in groups:
         groups.append(ADMIN)
-
-    # Find the next available numeric ID
-    if warehouses:
-        next_id = str(max(int(i) for i in warehouses.keys()) + 1)
-    else:
-        next_id = "1"
-    warehouses[next_id] = {"name": name, "groups": groups, "inventory": {}}
-    return jsonify({"id": next_id, "name": name, "groups": groups}), 201
+    warehouse = Warehouse(name=name, groups=','.join(groups))
+    db.session.add(warehouse)
+    db.session.commit()
+    return jsonify({"id": warehouse.id, "name": warehouse.name, "groups": groups}), 201
 
 @app.route('/warehouses/<warehouse_id>', methods=['DELETE'])
 @admin_required
 def delete_warehouse(warehouse_id):
-    wh = warehouses.get(warehouse_id)
-    if not wh or current_group() not in wh.get('groups', []):
+    warehouse = Warehouse.query.get(warehouse_id)
+    if not warehouse or current_group() not in warehouse.groups.split(','):
         return jsonify({"error": "Warehouse not found"}), 404
-    del warehouses[warehouse_id]
+    # Delete all inventory items for this warehouse
+    InventoryItem.query.filter_by(warehouse_id=warehouse.id).delete()
+    db.session.delete(warehouse)
+    db.session.commit()
     log_action(current_user(), "מחיקת מחסן", warehouse_id, None, None)
     return jsonify({"success": True, "deleted_warehouse": warehouse_id}), 200
 
-
 @app.route('/warehouses', methods=['GET'])
 def list_warehouses():
-    visible_warehouses = {
-        wid: w for wid, w in warehouses.items()
-        if current_group() in w.get('groups', [])
+    user_group = current_group()
+    warehouses = Warehouse.query.all()
+    if not warehouses:
+        return jsonify({}), 200  # No warehouses available
+
+    visible = {
+        str(w.id): {
+            "name": w.name,
+            "groups": w.groups.split(','),
+            "inventory": {
+                item.name: {"quantity": item.quantity, "user": item.user}
+                for item in w.inventory_items
+            }
+        }
+        for w in warehouses if user_group in w.groups.split(',')
     }
-    return jsonify(visible_warehouses), 200
+    return jsonify(visible), 200
 
 @app.route('/warehouses/<warehouse_id>', methods=['GET'])
 def get_warehouse(warehouse_id):
-    wh = warehouses.get(warehouse_id)
-    if not wh or current_group() not in wh["groups"]:
+    warehouse = Warehouse.query.get(warehouse_id)
+    if not warehouse or current_group() not in warehouse.groups.split(','):
         return jsonify({"error": "Warehouse not found"}), 404
+    wh = {
+        "name": warehouse.name,
+        "groups": warehouse.groups.split(','),
+        "inventory": {
+            item.name: {"quantity": item.quantity, "user": item.user}
+            for item in warehouse.inventory_items
+        }
+    }
     return jsonify(wh)
 
 # ----------  Items ---------------------------------------------------
-@app.route('/warehouses/<warehouse_id>/items', methods=['POST'])
+@app.route('/warehouses/<int:warehouse_id>/items', methods=['POST'])
 def add_item(warehouse_id):
-    data     = request.json or {}
-    item     = data.get('item')
+    data = request.json or {}
+    item = data.get('item')
     quantity = data.get('quantity')
-
     if item is None or quantity is None:
         return jsonify({"error": "Missing fields"}), 400
-    try:
-        quantity = int(quantity)
-    except (ValueError, TypeError):
-        return jsonify({"error": "Quantity must be an integer"}), 400
-
-    wh = warehouses.get(warehouse_id)
-    if not wh:
+    warehouse = Warehouse.query.get(warehouse_id)
+    if not warehouse:
         return jsonify({"error": "Warehouse not found"}), 404
+    inv_item = InventoryItem.query.filter_by(warehouse_id=warehouse_id, name=item).first()
+    if inv_item:
+        inv_item.quantity += int(quantity)
+        inv_item.user = current_user()
+    else:
+        inv_item = InventoryItem(
+            warehouse_id=warehouse_id,
+            name=item,
+            quantity=int(quantity),
+            user=current_user()
+        )
+        db.session.add(inv_item)
+    db.session.commit()
+    return jsonify({"item": item, "quantity": inv_item.quantity})
 
-    inventory       = wh['inventory']
-    prev_quantity   = inventory.get(item, {}).get("quantity", 0)
-    inventory[item] = {"quantity": prev_quantity + quantity, "user": current_user()}
-    log_action(current_user(), "פריט חדש", warehouse_id, item, quantity)
-    return jsonify({"item": item, "quantity": inventory[item]["quantity"]})
-
-@app.route('/warehouses/<warehouse_id>/items', methods=['PUT'])
+@app.route('/warehouses/<int:warehouse_id>/items', methods=['PUT'])
 def update_item(warehouse_id):
-    data     = request.json or {}
-    item     = data.get('item')
+    data = request.json or {}
+    item = data.get('item')
     quantity = data.get('quantity')
 
     if item is None or quantity is None:
         return jsonify({"error": "Missing fields"}), 400
 
-    wh = warehouses.get(warehouse_id)
-    if not wh:
+    warehouse = Warehouse.query.get(warehouse_id)
+    if not warehouse:
         return jsonify({"error": "Warehouse not found"}), 404
 
-    wh['inventory'][item] = {"quantity": quantity, "user": current_user()}
+    inv_item = InventoryItem.query.filter_by(warehouse_id=warehouse_id, name=item).first()
+    if inv_item:
+        inv_item.quantity = int(quantity)
+        inv_item.user = current_user()
+    else:
+        inv_item = InventoryItem(
+            warehouse_id=warehouse_id,
+            name=item,
+            quantity=int(quantity),
+            user=current_user()
+        )
+        db.session.add(inv_item)
+    db.session.commit()
     log_action(current_user(), "עדכון פריט", warehouse_id, item, quantity)
     return jsonify({"item": item, "new_quantity": quantity})
 
-@app.route('/warehouses/<warehouse_id>/items/<item>', methods=['DELETE'])
+@app.route('/warehouses/<int:warehouse_id>/items/<item>', methods=['DELETE'])
 def remove_item(warehouse_id, item):
-    wh = warehouses.get(warehouse_id)
-    if not wh or item not in wh['inventory']:
+    inv_item = InventoryItem.query.filter_by(warehouse_id=warehouse_id, name=item).first()
+    if not inv_item:
         return jsonify({"error": "Item not found"}), 404
 
-    quantity = wh['inventory'].pop(item)["quantity"]
+    quantity = inv_item.quantity
+    db.session.delete(inv_item)
+    db.session.commit()
     log_action(current_user(), "מחיקת פריט", warehouse_id, item, quantity)
     return jsonify({"removed_item": item, "quantity": quantity})
 
@@ -293,4 +341,10 @@ def logout():
 # Launch
 # --------------------------------------------------------------------
 if __name__ == '__main__':
+    # Ensure the instance folder exists and DB is initialized
+    instance_path = os.path.join(os.path.dirname(__file__), '..', 'instance')
+    db_path = os.path.join(os.path.dirname(__file__), 'warehouse.db')
+    if not os.path.exists(db_path):
+        with app.app_context():
+            db.create_all()
     app.run(debug=True, port=5001)
