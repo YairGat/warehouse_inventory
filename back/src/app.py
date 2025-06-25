@@ -1,150 +1,49 @@
-# warehouse_app.py
-#
-# Flask inventory manager with role-based access control + session-based
-# user tracking. The current logged-in user (in session['username'])
-# is automatically stamped on every action—no “user” field is accepted
-# from the client any more.
-#
-# Roles:
-#   • viewer – read-only
-#   • editor – may create / edit / delete warehouses and items
-# --------------------------------------------------------------------
-
 from flask import (
     Flask, request, jsonify, render_template,
     redirect, url_for, session, send_file
 )
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
-from uuid import uuid4
 import csv
 from babel.dates import format_datetime
-from functools import wraps
-import os
+
+from user_manager import admin_required, current_user, current_group, get_group_by_password
+from action_manager import log_action
+from utils import format_hebrew_datetime
+from db_classes import Warehouse, InventoryItem
+from consts import ADMIN, GROUPS
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 CORS(app, supports_credentials=True, origins=["http://localhost:3000"])
 app.secret_key = 'supersecret'
-app.config['SESSION_PERMANENT'] = False      # default cookies die on close
+app.config['SESSION_PERMANENT'] = False  # default cookies die on close
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///warehouse.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
-
-# --------------------------------------------------------------------
-# In-memory data
-# --------------------------------------------------------------------
-ADMIN = "admin"
-
-# Define groups and which users belong to them
-GROUPS = {
-    ADMIN: "adminadmin",
-    "סהר": "sahar123",
-    "יפתח": "yiftah123"
-}
-
-# Example: assign warehouses to groups (list of group names)
-warehouses = {
-    "1": {
-        "name": "קרביץ משרדים",
-        "groups": [ADMIN, "סהר", "יפתח"],
-        "inventory": {
-            "מברגה": {"quantity": 5, "user": "orielbaz"},
-            "פטיש": {"quantity": 2, "user": "orielbaz"}
-        }
-    },
-    "2": {
-        "name": "רספייה פלוגת יפתח",
-        "groups": [ADMIN, "יפתח"],
-        "inventory": {
-            "מברגה": {"quantity": 3, "user": "orielbaz"},
-            "פלייר": {"quantity": 7, "user": "orielbaz"}
-        }
-    },
-    "3": {
-        "name": "רספייה פלוגת סהר",
-        "groups": [ADMIN, "סהר"],
-        "inventory": {
-            "מברגה": {"quantity": 1, "user": "orielbaz"},
-            "מסור": {"quantity": 4, "user": "orielbaz"}
-        }
-    }
-}
+app.jinja_env.filters['hebrew_datetime'] = format_hebrew_datetime
 
 actions = []
 
-class Warehouse(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(120), nullable=False)
-    groups = db.Column(db.String(256), nullable=False)  # Comma-separated group names
-
-    inventory_items = db.relationship('InventoryItem', backref='warehouse', lazy=True)
-
-class InventoryItem(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouse.id'), nullable=False)
-    name = db.Column(db.String(120), nullable=False)
-    quantity = db.Column(db.Integer, nullable=False)
-    user = db.Column(db.String(120), nullable=False)
-
-def current_user():
-    """Return the username from the session (or None if not logged in)."""
-    return session.get("username")
-
-def current_group():
-    """Return the group of the current user from the session."""
-    return session.get("group")
-
-def get_group_by_password(password):
-    """Return the group name by password, or None if not found."""
-    for group, pwd in GROUPS.items():
-        if pwd == password:
-            return group
-    return None
-
-def admin_required(view):
-    """Decorator: block non-editors from mutating data."""
-    @wraps(view)
-    def wrapped(*args, **kwargs):
-        if current_group() != ADMIN:
-            if request.accept_mimetypes.accept_html:
-                return "Permission denied — admins only", 403
-            return jsonify({"error": "permission denied"}), 403
-        return view(*args, **kwargs)
-    return wrapped
-
-def format_hebrew_datetime(iso_str):
-    dt = datetime.fromisoformat(iso_str)
-    return format_datetime(dt, locale='he')
-
-app.jinja_env.filters['hebrew_datetime'] = format_hebrew_datetime
-
-def log_action(user, action_type, warehouse_id, item_name, quantity):
-    actions.append({  # O(1) complexity
-        "timestamp": datetime.now().isoformat(),  # Include seconds
-        "user": user,
-        "action": action_type,
-        "warehouse_id": warehouse_id,
-        "item": item_name,
-        "quantity": quantity
-    })
 
 @app.route('/get_actions', methods=['GET'])
 def get_actions():
     # Return actions in reverse order (latest first) without modifying the list
     return jsonify(list(reversed(actions))), 200
 
+
 @app.route('/get_actions/<warehouse_id>', methods=['GET'])
 def get_actions_for_warehouse(warehouse_id):
     filtered = [action for action in reversed(actions) if str(action.get('warehouse_id')) == str(warehouse_id)]
     return jsonify(filtered), 200
+
 
 # ----------  Warehouses --------------------------------------------
 @app.route('/groups', methods=['GET'])
 def get_groups():
     """Return all available groups as a list."""
     return jsonify([g for g in GROUPS.keys() if g != ADMIN]), 200
+
 
 @app.route('/warehouses', methods=['POST'])
 @admin_required
@@ -161,6 +60,7 @@ def create_warehouse():
     db.session.commit()
     return jsonify({"id": warehouse.id, "name": warehouse.name, "groups": groups}), 201
 
+
 @app.route('/warehouses/<warehouse_id>', methods=['DELETE'])
 @admin_required
 def delete_warehouse(warehouse_id):
@@ -173,6 +73,7 @@ def delete_warehouse(warehouse_id):
     db.session.commit()
     log_action(current_user(), "מחיקת מחסן", warehouse_id, None, None)
     return jsonify({"success": True, "deleted_warehouse": warehouse_id}), 200
+
 
 @app.route('/warehouses', methods=['GET'])
 def list_warehouses():
@@ -194,6 +95,7 @@ def list_warehouses():
     }
     return jsonify(visible), 200
 
+
 @app.route('/warehouses/<warehouse_id>', methods=['GET'])
 def get_warehouse(warehouse_id):
     warehouse = Warehouse.query.get(warehouse_id)
@@ -208,6 +110,7 @@ def get_warehouse(warehouse_id):
         }
     }
     return jsonify(wh)
+
 
 # ----------  Items ---------------------------------------------------
 @app.route('/warehouses/<int:warehouse_id>/items', methods=['POST'])
@@ -234,6 +137,7 @@ def add_item(warehouse_id):
         db.session.add(inv_item)
     db.session.commit()
     return jsonify({"item": item, "quantity": inv_item.quantity})
+
 
 @app.route('/warehouses/<int:warehouse_id>/items', methods=['PUT'])
 def update_item(warehouse_id):
@@ -264,6 +168,7 @@ def update_item(warehouse_id):
     log_action(current_user(), "עדכון פריט", warehouse_id, item, quantity)
     return jsonify({"item": item, "new_quantity": quantity})
 
+
 @app.route('/warehouses/<int:warehouse_id>/items/<item>', methods=['DELETE'])
 def remove_item(warehouse_id, item):
     inv_item = InventoryItem.query.filter_by(warehouse_id=warehouse_id, name=item).first()
@@ -276,6 +181,7 @@ def remove_item(warehouse_id, item):
     log_action(current_user(), "מחיקת פריט", warehouse_id, item, quantity)
     return jsonify({"removed_item": item, "quantity": quantity})
 
+
 # ----------  History & Export ---------------------------------------
 @app.route('/export_inventory', methods=['GET'])
 def export_inventory():
@@ -287,6 +193,7 @@ def export_inventory():
             for item, data in wh['inventory'].items():
                 writer.writerow([wh['name'], item, data['quantity'], data['user']])
     return send_file(output_path, as_attachment=True)
+
 
 @app.route('/export_inventory/<warehouse_id>', methods=['GET'])
 def export_inventory_single(warehouse_id):
@@ -305,6 +212,7 @@ def export_inventory_single(warehouse_id):
 
     return send_file(output_path, as_attachment=True)
 
+
 # ----------  Auth -----------------------------------------------------
 @app.route('/login', methods=['POST'])
 def login():
@@ -321,7 +229,7 @@ def login():
         return jsonify({"success": True, "username": username, "group": group}), 200
     else:
         return jsonify({"success": False, "error": "Invalid credentials"}), 401
-    
+
 
 @app.route('/login', methods=['GET'])
 def get_login_status():
@@ -332,19 +240,8 @@ def get_login_status():
     else:
         return jsonify({"username": None, "group": None}), 200
 
+
 @app.route('/logout')
 def logout():
     session.clear()
     return jsonify({"success": True}), 200
-
-# --------------------------------------------------------------------
-# Launch
-# --------------------------------------------------------------------
-if __name__ == '__main__':
-    # Ensure the instance folder exists and DB is initialized
-    instance_path = os.path.join(os.path.dirname(__file__), '..', 'instance')
-    db_path = os.path.join(os.path.dirname(__file__), 'warehouse.db')
-    if not os.path.exists(db_path):
-        with app.app_context():
-            db.create_all()
-    app.run(debug=True, port=5001)
