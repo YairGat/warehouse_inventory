@@ -2,50 +2,37 @@ from flask import (
     Flask, request, jsonify, render_template,
     redirect, url_for, session, send_file
 )
-from flask_cors import CORS
-from flask_sqlalchemy import SQLAlchemy
 import csv
 from babel.dates import format_datetime
 
 from user_manager import admin_required, current_user, current_group, get_group_by_password
-from action_manager import log_action
-from utils import format_hebrew_datetime
-from db_classes import Warehouse, InventoryItem
+from action_manager import log_action, ACTIONS
+from db_classes import Warehouse, InventoryItem, warehouses
 from consts import ADMIN, GROUPS
 
-app = Flask(__name__, template_folder='templates', static_folder='static')
-CORS(app, supports_credentials=True, origins=["http://localhost:3000"])
-app.secret_key = 'supersecret'
-app.config['SESSION_PERMANENT'] = False  # default cookies die on close
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///warehouse.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-db = SQLAlchemy(app)
-app.jinja_env.filters['hebrew_datetime'] = format_hebrew_datetime
-
-actions = []
+from config import APP, DB
 
 
-@app.route('/get_actions', methods=['GET'])
+@APP.route('/get_actions', methods=['GET'])
 def get_actions():
     # Return actions in reverse order (latest first) without modifying the list
-    return jsonify(list(reversed(actions))), 200
+    return jsonify(list(reversed(ACTIONS))), 200
 
 
-@app.route('/get_actions/<warehouse_id>', methods=['GET'])
+@APP.route('/get_actions/<warehouse_id>', methods=['GET'])
 def get_actions_for_warehouse(warehouse_id):
-    filtered = [action for action in reversed(actions) if str(action.get('warehouse_id')) == str(warehouse_id)]
+    filtered = [action for action in reversed(ACTIONS) if str(action.get('warehouse_id')) == str(warehouse_id)]
     return jsonify(filtered), 200
 
 
 # ----------  Warehouses --------------------------------------------
-@app.route('/groups', methods=['GET'])
+@APP.route('/groups', methods=['GET'])
 def get_groups():
     """Return all available groups as a list."""
     return jsonify([g for g in GROUPS.keys() if g != ADMIN]), 200
 
 
-@app.route('/warehouses', methods=['POST'])
+@APP.route('/warehouses', methods=['POST'])
 @admin_required
 def create_warehouse():
     data = request.json or {}
@@ -56,12 +43,12 @@ def create_warehouse():
     if ADMIN not in groups:
         groups.append(ADMIN)
     warehouse = Warehouse(name=name, groups=','.join(groups))
-    db.session.add(warehouse)
-    db.session.commit()
+    DB.session.add(warehouse)
+    DB.session.commit()
     return jsonify({"id": warehouse.id, "name": warehouse.name, "groups": groups}), 201
 
 
-@app.route('/warehouses/<warehouse_id>', methods=['DELETE'])
+@APP.route('/warehouses/<warehouse_id>', methods=['DELETE'])
 @admin_required
 def delete_warehouse(warehouse_id):
     warehouse = Warehouse.query.get(warehouse_id)
@@ -69,13 +56,13 @@ def delete_warehouse(warehouse_id):
         return jsonify({"error": "Warehouse not found"}), 404
     # Delete all inventory items for this warehouse
     InventoryItem.query.filter_by(warehouse_id=warehouse.id).delete()
-    db.session.delete(warehouse)
-    db.session.commit()
+    DB.session.delete(warehouse)
+    DB.session.commit()
     log_action(current_user(), "מחיקת מחסן", warehouse_id, None, None)
     return jsonify({"success": True, "deleted_warehouse": warehouse_id}), 200
 
 
-@app.route('/warehouses', methods=['GET'])
+@APP.route('/warehouses', methods=['GET'])
 def list_warehouses():
     user_group = current_group()
     warehouses = Warehouse.query.all()
@@ -96,7 +83,7 @@ def list_warehouses():
     return jsonify(visible), 200
 
 
-@app.route('/warehouses/<warehouse_id>', methods=['GET'])
+@APP.route('/warehouses/<warehouse_id>', methods=['GET'])
 def get_warehouse(warehouse_id):
     warehouse = Warehouse.query.get(warehouse_id)
     if not warehouse or current_group() not in warehouse.groups.split(','):
@@ -113,7 +100,7 @@ def get_warehouse(warehouse_id):
 
 
 # ----------  Items ---------------------------------------------------
-@app.route('/warehouses/<int:warehouse_id>/items', methods=['POST'])
+@APP.route('/warehouses/<int:warehouse_id>/items', methods=['POST'])
 def add_item(warehouse_id):
     data = request.json or {}
     item = data.get('item')
@@ -134,12 +121,12 @@ def add_item(warehouse_id):
             quantity=int(quantity),
             user=current_user()
         )
-        db.session.add(inv_item)
-    db.session.commit()
+        DB.session.add(inv_item)
+    DB.session.commit()
     return jsonify({"item": item, "quantity": inv_item.quantity})
 
 
-@app.route('/warehouses/<int:warehouse_id>/items', methods=['PUT'])
+@APP.route('/warehouses/<int:warehouse_id>/items', methods=['PUT'])
 def update_item(warehouse_id):
     data = request.json or {}
     item = data.get('item')
@@ -163,27 +150,27 @@ def update_item(warehouse_id):
             quantity=int(quantity),
             user=current_user()
         )
-        db.session.add(inv_item)
-    db.session.commit()
+        DB.session.add(inv_item)
+    DB.session.commit()
     log_action(current_user(), "עדכון פריט", warehouse_id, item, quantity)
     return jsonify({"item": item, "new_quantity": quantity})
 
 
-@app.route('/warehouses/<int:warehouse_id>/items/<item>', methods=['DELETE'])
+@APP.route('/warehouses/<int:warehouse_id>/items/<item>', methods=['DELETE'])
 def remove_item(warehouse_id, item):
     inv_item = InventoryItem.query.filter_by(warehouse_id=warehouse_id, name=item).first()
     if not inv_item:
         return jsonify({"error": "Item not found"}), 404
 
     quantity = inv_item.quantity
-    db.session.delete(inv_item)
-    db.session.commit()
+    DB.session.delete(inv_item)
+    DB.session.commit()
     log_action(current_user(), "מחיקת פריט", warehouse_id, item, quantity)
     return jsonify({"removed_item": item, "quantity": quantity})
 
 
 # ----------  History & Export ---------------------------------------
-@app.route('/export_inventory', methods=['GET'])
+@APP.route('/export_inventory', methods=['GET'])
 def export_inventory():
     output_path = 'inventory_export.csv'
     with open(output_path, mode='w', newline='', encoding='utf-8') as file:
@@ -195,7 +182,7 @@ def export_inventory():
     return send_file(output_path, as_attachment=True)
 
 
-@app.route('/export_inventory/<warehouse_id>', methods=['GET'])
+@APP.route('/export_inventory/<warehouse_id>', methods=['GET'])
 def export_inventory_single(warehouse_id):
     """Download a CSV for just one warehouse."""
     wh = warehouses.get(warehouse_id)
@@ -214,7 +201,7 @@ def export_inventory_single(warehouse_id):
 
 
 # ----------  Auth -----------------------------------------------------
-@app.route('/login', methods=['POST'])
+@APP.route('/login', methods=['POST'])
 def login():
     data = request.get_json() or request.form
     username = data.get('username')
@@ -231,7 +218,7 @@ def login():
         return jsonify({"success": False, "error": "Invalid credentials"}), 401
 
 
-@app.route('/login', methods=['GET'])
+@APP.route('/login', methods=['GET'])
 def get_login_status():
     username = session.get('username')
     group = session.get('group')
@@ -241,7 +228,7 @@ def get_login_status():
         return jsonify({"username": None, "group": None}), 200
 
 
-@app.route('/logout')
+@APP.route('/logout')
 def logout():
     session.clear()
     return jsonify({"success": True}), 200

@@ -1,5 +1,8 @@
+const BACKEND_URL = '127.0.0.1:5001'
+
+
 export async function getFromBack(path: string): Promise<any> {
-    const response = await fetch(`http://localhost:5001/${path}`, {
+    const response = await fetch(`http://${BACKEND_URL}/${path}`, {
         credentials: 'include', // <-- This line is required!
     });
     const data = await response.json();
@@ -22,7 +25,7 @@ export async function sendToBack(
         if (method !== 'DELETE') {
             options.body = JSON.stringify(data);
         }
-        const response = await fetch(`http://localhost:5001/${path}`, options);
+        const response = await fetch(`http://${BACKEND_URL}/${path}`, options);
         return await response.json();
     } catch (error) {
         return 0;
