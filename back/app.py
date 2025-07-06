@@ -118,7 +118,6 @@ def get_groups():
     return jsonify([g for g in GROUPS.keys() if g != ADMIN]), 200
 
 @app.route('/warehouses', methods=['POST'])
-@admin_required
 def create_warehouse():
     data = request.json or {}
     name = data.get('name')
@@ -133,7 +132,6 @@ def create_warehouse():
     return jsonify({"id": warehouse.id, "name": warehouse.name, "groups": groups}), 201
 
 @app.route('/warehouses/<warehouse_id>', methods=['DELETE'])
-@admin_required
 def delete_warehouse(warehouse_id):
     warehouse = Warehouse.query.get(warehouse_id)
     if not warehouse or current_group() not in warehouse.groups.split(','):
