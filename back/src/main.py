@@ -1,7 +1,8 @@
 import os
-from config import APP, DB
+from config import init_app_and_db, APP, DB
 
 def main():
+    init_app_and_db()
     instance_path = os.path.join(os.path.dirname(__file__), '..', 'instance')
     db_path = os.path.join(os.path.dirname(__file__), 'warehouse.db')
     if not os.path.exists(db_path):
