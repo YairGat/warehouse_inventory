@@ -83,7 +83,7 @@ const WarehousesPage: React.FC = () => {
         );
     };
 
-    const isAdmin = true; // Replace with actual admin check logic
+    const isAdmin = userGroup === 'admin';
 
     return (
         <Box height="100vh">

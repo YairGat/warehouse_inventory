@@ -118,6 +118,7 @@ def get_groups():
     return jsonify([g for g in GROUPS.keys() if g != ADMIN]), 200
 
 @app.route('/warehouses', methods=['POST'])
+@admin_required
 def create_warehouse():
     data = request.json or {}
     name = data.get('name')
@@ -132,6 +133,7 @@ def create_warehouse():
     return jsonify({"id": warehouse.id, "name": warehouse.name, "groups": groups}), 201
 
 @app.route('/warehouses/<warehouse_id>', methods=['DELETE'])
+@admin_required
 def delete_warehouse(warehouse_id):
     warehouse = Warehouse.query.get(warehouse_id)
     if not warehouse or current_group() not in warehouse.groups.split(','):
@@ -294,12 +296,14 @@ def login():
 
 @app.route('/login', methods=['GET'])
 def get_login_status():
-    username = session.get('username')
-    group = session.get('group')
-    if username and group:
-        return jsonify({"username": username, "group": group}), 200
-    else:
-        return jsonify({"username": None, "group": None}), 200
+    # TODO - RETURN LOGIN FEATURE
+    # username = session.get('username')
+    # group = session.get('group')
+    # if username and group:
+    #     return jsonify({"username": username, "group": group}), 200
+    # else:
+    #     return jsonify({"username": None, "group": None}), 200
+    return jsonify({"username": "orielbaz", "group": ADMIN}), 200
 
 @app.route('/logout')
 def logout():
