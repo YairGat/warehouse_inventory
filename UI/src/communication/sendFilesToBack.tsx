@@ -1,5 +1,5 @@
 export async function getFromBack(path: string): Promise<any> {
-    const response = await fetch(`http://localhost:5001/${path}`, {
+    const response = await fetch(`https://api-bhd1-digital-warehouse.onrender.com/${path}`, {
         credentials: 'include', // <-- This line is required!
     });
     const data = await response.json();
@@ -22,7 +22,7 @@ export async function sendToBack(
         if (method !== 'DELETE') {
             options.body = JSON.stringify(data);
         }
-        const response = await fetch(`http://localhost:5001/${path}`, options);
+        const response = await fetch(`https://api-bhd1-digital-warehouse.onrender.com/${path}`, options);
         return await response.json();
     } catch (error) {
         return 0;

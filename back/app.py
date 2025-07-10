@@ -24,7 +24,7 @@ from functools import wraps
 import os
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
-CORS(app, supports_credentials=True, origins=["http://localhost:3000"])
+CORS(app, supports_credentials=True, origins=["https://bhd1-digital-warehouse.onrender.com"])
 app.secret_key = 'supersecret'
 app.config['SESSION_PERMANENT'] = False      # default cookies die on close
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///warehouse.db'
@@ -42,34 +42,6 @@ GROUPS = {
     ADMIN: "adminadmin",
     "סהר": "sahar123",
     "יפתח": "yiftah123"
-}
-
-# Example: assign warehouses to groups (list of group names)
-warehouses = {
-    "1": {
-        "name": "קרביץ משרדים",
-        "groups": [ADMIN, "סהר", "יפתח"],
-        "inventory": {
-            "מברגה": {"quantity": 5, "user": "orielbaz"},
-            "פטיש": {"quantity": 2, "user": "orielbaz"}
-        }
-    },
-    "2": {
-        "name": "רספייה פלוגת יפתח",
-        "groups": [ADMIN, "יפתח"],
-        "inventory": {
-            "מברגה": {"quantity": 3, "user": "orielbaz"},
-            "פלייר": {"quantity": 7, "user": "orielbaz"}
-        }
-    },
-    "3": {
-        "name": "רספייה פלוגת סהר",
-        "groups": [ADMIN, "סהר"],
-        "inventory": {
-            "מברגה": {"quantity": 1, "user": "orielbaz"},
-            "מסור": {"quantity": 4, "user": "orielbaz"}
-        }
-    }
 }
 
 actions = []
@@ -276,35 +248,6 @@ def remove_item(warehouse_id, item):
     log_action(current_user(), "מחיקת פריט", warehouse_id, item, quantity)
     return jsonify({"removed_item": item, "quantity": quantity})
 
-# ----------  History & Export ---------------------------------------
-@app.route('/export_inventory', methods=['GET'])
-def export_inventory():
-    output_path = 'inventory_export.csv'
-    with open(output_path, mode='w', newline='', encoding='utf-8') as file:
-        writer = csv.writer(file)
-        writer.writerow(['מחסן', 'פריט', 'כמות', 'משתמש אחרון'])
-        for wh in warehouses.values():
-            for item, data in wh['inventory'].items():
-                writer.writerow([wh['name'], item, data['quantity'], data['user']])
-    return send_file(output_path, as_attachment=True)
-
-@app.route('/export_inventory/<warehouse_id>', methods=['GET'])
-def export_inventory_single(warehouse_id):
-    """Download a CSV for just one warehouse."""
-    wh = warehouses.get(warehouse_id)
-    if not wh:
-        return "Warehouse not found", 404
-
-    # file name: inventory_<ID>.csv  (quick & safe)
-    output_path = f'inventory_{warehouse_id}.csv'
-    with open(output_path, mode='w', newline='', encoding='utf-8') as file:
-        writer = csv.writer(file)
-        writer.writerow(['פריט', 'כמות', 'משתמש אחרון'])
-        for item, data in wh['inventory'].items():
-            writer.writerow([item, data['quantity'], data['user']])
-
-    return send_file(output_path, as_attachment=True)
-
 # ----------  Auth -----------------------------------------------------
 @app.route('/login', methods=['POST'])
 def login():
@@ -347,4 +290,4 @@ if __name__ == '__main__':
     if not os.path.exists(db_path):
         with app.app_context():
             db.create_all()
-    app.run(debug=True, port=5001)
+    app.run(debug=False, port=10000)
