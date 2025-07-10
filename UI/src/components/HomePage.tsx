@@ -23,7 +23,7 @@ const HomePage: React.FC = () => {
         const response = await sendToBack('login', { username, password });
         setLoading(false);
         if (response && response.success) {
-            navigate('/warehouses');
+            navigate('/main');
         } else {
             alert('Login failed');
         }
