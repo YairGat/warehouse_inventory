@@ -63,8 +63,7 @@ const NewApp: React.FC = () => {
                 <CssBaseline />
                 <Routes>
                     <Route path="/" element={<WarehousesPage />} />
-                    <Route path="/main" element={<WarehousesPage />} />
-                    <Route path="/main/:warehouseName" element={<InventoryPage />} />
+                    <Route path="/warehouses/:warehouseName" element={<InventoryPage />} />
                     <Route path="/about-us" element={<AboutUsPage />} />
                     <Route path="/contact-us" element={<ContactUsPage />} />
                 </Routes>

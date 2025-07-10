@@ -54,7 +54,7 @@ const WarehousesPage: React.FC = () => {
     const handleDrawerClose = () => setDrawerOpen(false);
 
     const handleWarehouseClick = (warehouseId: string) => {
-        navigate(`/main/${encodeURIComponent(warehouseId)}`);
+        navigate(`/warehouses/${encodeURIComponent(warehouseId)}`);
     };
 
     const handleAddWarehouse = async () => {
