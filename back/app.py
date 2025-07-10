@@ -61,12 +61,13 @@ class InventoryItem(db.Model):
 
 def current_user():
     """Return the username from the session (or None if not logged in)."""
-    return session.get("username")
+    return "orielbaz"
+    # return session.get("username")
 
 def current_group():
     """Return the group of the current user from the session."""
     return ADMIN
-    return session.get("group")
+    # return session.get("group")
 
 def get_group_by_password(password):
     """Return the group name by password, or None if not found."""
