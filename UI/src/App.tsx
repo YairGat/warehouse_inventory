@@ -62,7 +62,7 @@ const NewApp: React.FC = () => {
             <ThemeProvider theme={theme}>
                 <CssBaseline />
                 <Routes>
-                    <Route path="/" element={<HomePage />} />
+                    <Route path="/" element={<WarehousesPage />} />
                     <Route path="/main" element={<WarehousesPage />} />
                     <Route path="/main/:warehouseName" element={<InventoryPage />} />
                     <Route path="/about-us" element={<AboutUsPage />} />
