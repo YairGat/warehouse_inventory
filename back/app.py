@@ -23,9 +23,9 @@ from functools import wraps
 import os
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
-CORS(app, supports_credentials=True, origins=["*"])
+CORS(app, supports_credentials=True, origins=["https://warehouse-inventory-front.onrender.com"])
 app.secret_key = 'supersecret'
-app.config['SESSION_PERMANENT'] = False      # default cookies die on close
+app.config['SESSION_PERMANENT'] = True      # default cookies die on close
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///warehouse.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
