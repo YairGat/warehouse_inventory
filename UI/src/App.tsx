@@ -2,6 +2,7 @@ import React from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import theme from './theme.tsx';
 import { CssBaseline } from '@mui/material';
+import HomePage from './components/HomePage.tsx';
 import { Routes, Route } from 'react-router-dom';
 import WarehousesPage from './components/WarehousesPage.tsx';
 import InventoryPage from './components/InventoryPage.tsx';
@@ -61,7 +62,8 @@ const NewApp: React.FC = () => {
             <ThemeProvider theme={theme}>
                 <CssBaseline />
                 <Routes>
-                    <Route path="/" element={<WarehousesPage />} />
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/warehouses" element={<WarehousesPage />} />
                     <Route path="/warehouses/:warehouseName" element={<InventoryPage />} />
                     <Route path="/about-us" element={<AboutUsPage />} />
                     <Route path="/contact-us" element={<ContactUsPage />} />
