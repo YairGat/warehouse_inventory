@@ -321,4 +321,4 @@ if __name__ == '__main__':
     if not os.path.exists(db_path):
         with app.app_context():
             db.create_all()
-    app.run(debug=True, port=5001, host="0.0.0.0")
+    app.run(debug=False, port=5001, host="0.0.0.0", ssl_context=("cert.pem", "priv.pem"))
