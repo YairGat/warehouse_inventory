@@ -39,37 +39,9 @@ ADMIN = "admin"
 
 # Define groups and which users belong to them
 GROUPS = {
-    ADMIN: "adminadmin",
+    ADMIN: "alon",
     "סהר": "sahar123",
     "יפתח": "yiftah123"
-}
-
-# Example: assign warehouses to groups (list of group names)
-warehouses = {
-    "1": {
-        "name": "קרביץ משרדים",
-        "groups": [ADMIN, "סהר", "יפתח"],
-        "inventory": {
-            "מברגה": {"quantity": 5, "user": "orielbaz"},
-            "פטיש": {"quantity": 2, "user": "orielbaz"}
-        }
-    },
-    "2": {
-        "name": "רספייה פלוגת יפתח",
-        "groups": [ADMIN, "יפתח"],
-        "inventory": {
-            "מברגה": {"quantity": 3, "user": "orielbaz"},
-            "פלייר": {"quantity": 7, "user": "orielbaz"}
-        }
-    },
-    "3": {
-        "name": "רספייה פלוגת סהר",
-        "groups": [ADMIN, "סהר"],
-        "inventory": {
-            "מברגה": {"quantity": 1, "user": "orielbaz"},
-            "מסור": {"quantity": 4, "user": "orielbaz"}
-        }
-    }
 }
 
 actions = []
@@ -90,7 +62,7 @@ class InventoryItem(db.Model):
 
 def current_user():
     """Return the username from the session (or None if not logged in)."""
-    return 'orielbaz'
+    return 'bhd1'
 
 def current_group():
     """Return the group of the current user from the session."""
@@ -327,7 +299,7 @@ def login():
 def get_login_status():
     username = session.get('username')
     group = session.get('group')
-    return jsonify({"username": 'orielbaz', "group": ADMIN}), 200
+    return jsonify({"username": 'bhd1', "group": ADMIN}), 200
 
     # if username and group:
     #     return jsonify({"username": username, "group": group}), 200
