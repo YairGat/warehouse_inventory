@@ -91,6 +91,9 @@ const HomePage: React.FC = () => {
                     <Typography sx={{ mt: '10vh', mb: '0', fontSize: '12px', textAlign: 'center' }}>
                     פותח על ידי צוערי גדוד אלון 89
                     </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 0.8 }}>
+                        <img src='/images/Alon_Symbol.png' alt='Bahad 1 Symbol' style={{ width: 60, height: 60 }} />
+                    </Box>
                 </Container>
             </Fade>
         </Box>
